@@ -52,6 +52,7 @@ namespace KerbalUpdater
             {
                 throw new UriFormatException("No ID found");
             }
+
         }
         /// <summary>
         /// Wait until the page has finished loading.

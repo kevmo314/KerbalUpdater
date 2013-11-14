@@ -25,6 +25,10 @@ namespace KerbalUpdater
         /// </summary>
         private static Dictionary<int, string> ClientVersions;
         /// <summary>
+        /// Whether or not the mod is being monitored
+        /// </summary>
+        private static Dictionary<string, bool> Toggles;
+        /// <summary>
         /// Is this the first time the mod has been run?
         /// </summary>
         public static bool FirstRun { get; private set; }
@@ -88,6 +92,7 @@ namespace KerbalUpdater
                 Configuration.load();
                 Overrides = Deserialize<string, int>(Configuration.GetValue<string>("Overrides", ""));
                 ClientVersions = Deserialize<int, string>(Configuration.GetValue<string>("ClientVersions", ""));
+                Toggles = Deserialize<string, bool>(Configuration.GetValue<string>("Toggles", ""));
                 FirstRun = Configuration.GetValue<bool>("FirstRun", true);
                 Debug.Log("Initialized");
             }
@@ -102,9 +107,33 @@ namespace KerbalUpdater
                 Debug.Log("Attempting to save settings...");
                 Configuration.SetValue("Overrides", Serialize<string, int>(Overrides));
                 Configuration.SetValue("ClientVersions", Serialize<int, string>(ClientVersions));
+                Configuration.SetValue("Toggles", Serialize<string, bool>(Toggles));
                 Configuration.SetValue("FirstRun", false);
                 Configuration.save();
             }
+        }
+        public static bool GetToggle(KerbalMod mod)
+        {
+            return GetToggle(mod.PluginName);
+        }
+        public static bool GetToggle(string name)
+        {
+            if (Toggles.ContainsKey(name))
+            {
+                return Toggles[name];
+            }
+            else
+            {
+                return false;
+            }
+        }
+        public static void SetToggle(KerbalMod mod, bool toggle)
+        {
+            SetToggle(mod.PluginName, toggle);
+        }
+        public static void SetToggle(string name, bool toggle)
+        {
+            Toggles[name] = toggle;
         }
         /// <summary>
         /// Get the client version date of a given spacePortID from the configuration

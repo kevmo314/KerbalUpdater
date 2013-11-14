@@ -17,21 +17,34 @@ namespace KerbalUpdater
         static string KSP_EXE;
         static void Main(string[] args)
         {
+            Console.WriteLine("KERBAL UPDATER");
+            Console.WriteLine("--------------");
+            Console.WriteLine("Waiting for KSP to quit...");
             while (System.Diagnostics.Process.GetProcessesByName("KSP").Length > 0);
+            Console.WriteLine("Loading configuration...");
             LoadConstants();
             DetectRestartSignal();
             RemoveAbandonedDirectories();
             DirectoryInfo staging = new DirectoryInfo(STAGING_TARGET);
+            Console.Write("Copying files");
             CopyFilesRecursively(staging, new DirectoryInfo(PLUGIN_TARGET));
+            Console.WriteLine();
+            Console.WriteLine("Cleaning up...");
             try
             {
                 staging.Delete(true);
-                staging.Create(); // make an empty directory
+                Directory.CreateDirectory(STAGING_TARGET);
             }
             catch (Exception ex)
             {
-                // oh well?
+                if (RestartKSP)
+                {
+                    System.Diagnostics.Process.Start(KSP_EXE);
+                }
+                // oh well? we don't have access to debug :(
+                throw ex;
             }
+            // success!
             if (RestartKSP)
             {
                 System.Diagnostics.Process.Start(KSP_EXE);
@@ -95,6 +108,7 @@ namespace KerbalUpdater
             foreach (FileInfo file in source.GetFiles())
             {
                 //this.Worker.ReportProgress(Done / Total);
+                Console.Write(".");
                 file.CopyTo(Path.Combine(target.FullName, file.Name), true);
             }
         }

@@ -62,14 +62,14 @@ namespace KerbalUpdater
         /// <param name="pluginName">The base folder name</param>
         /// <param name="spacePortID">The Product ID on SpacePort</param>
         /// <param name="clientVersion">The known client version</param>
-        public KerbalMod(string displayName, string pluginName, int spacePortID = -1, DateTime? clientVersion = null)
+        public KerbalMod(string displayName, string pluginName, int spacePortID = -1, DateTime? clientVersion = null, bool organic = false)
         {
             this.DisplayName = displayName;
             this.PluginName = pluginName;
             this.SpacePortID = spacePortID;
             this.ClientVersion = clientVersion;
             this.SpacePortPage = (spacePortID == -1 ? null : new SpacePortPage(spacePortID));
-            this.Automatic = (spacePortID != -1);
+            this.Automatic = organic;
         }
         /// <summary>
         /// Get the plugin's configuration file
@@ -124,6 +124,7 @@ namespace KerbalUpdater
                 {
                     int spacePortID = -1;
                     string displayName = plugin.Name;
+                    bool organic = false;
                     if (reader != null)
                     {
                         while (reader.Read())
@@ -131,6 +132,7 @@ namespace KerbalUpdater
                             if (reader.GetAttribute("name") == "SpacePortID")
                             {
                                 spacePortID = reader.ReadElementContentAsInt();
+                                organic = true;
                             }
                             else if (reader.GetAttribute("name") == "Name")
                             {
@@ -143,7 +145,7 @@ namespace KerbalUpdater
                         spacePortID = UpdaterConfiguration.GetOverride(plugin.Name);
                     }
                     DateTime? clientDate = UpdaterConfiguration.GetClientVersion(spacePortID);
-                    mods.Add(new KerbalMod(displayName, plugin.Name, spacePortID, clientDate));
+                    mods.Add(new KerbalMod(displayName, plugin.Name, spacePortID, clientDate, organic));
                 }
             }
             return mods;

@@ -48,6 +48,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Resources.cs" />
     <Compile Include="UpdaterConfiguration.cs" />
     <Compile Include="ModDownloader.cs" />
     <Compile Include="SpacePortPage.cs" />
