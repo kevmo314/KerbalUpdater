@@ -76,19 +76,21 @@ namespace KerbalUpdater
         /// </summary>
         /// <param name="directory">The directory the plugin is located in</param>
         /// <returns>A reader for the config file</returns>
-        public static XmlReader GetPluginConfiguration(DirectoryInfo directory)
+        public static XmlElement GetPluginConfiguration(DirectoryInfo directory)
         {
             foreach (FileInfo file in directory.GetFiles())
             {
                 if (file.Name == "config.xml")
                 {
-                    return XmlReader.Create(file.OpenRead());
+                    XmlDocument doc = new XmlDocument();
+                    doc.LoadXml(File.ReadAllText(file.FullName));
+                    return doc.DocumentElement;
                 }
             }
             // No config.xml found yet :(
             foreach (DirectoryInfo childDirectory in directory.GetDirectories())
             {
-                XmlReader Xml = GetPluginConfiguration(childDirectory);
+                XmlElement Xml = GetPluginConfiguration(childDirectory);
                 if (Xml != null)
                 {
                     return Xml;
@@ -120,34 +122,39 @@ namespace KerbalUpdater
             foreach (DirectoryInfo plugin in (new DirectoryInfo(KerbalUpdater.Constants.PLUGIN_TARGET)).GetDirectories())
             {
                 Debug.Log("Reading " + plugin.Name);
-                using (XmlReader reader = GetPluginConfiguration(plugin))
+                XmlElement root = GetPluginConfiguration(plugin);
+                
+                int spacePortID = -1;
+                string displayName = plugin.Name;
+                bool organic = false;
+                if (root != null)
                 {
-                    int spacePortID = -1;
-                    string displayName = plugin.Name;
-                    bool organic = false;
-                    if (reader != null)
+                    foreach (XmlElement element in root.ChildNodes)
                     {
-                        while (reader.Read())
+                        Debug.Log(element.GetAttribute("name"));
+                        if (element.GetAttribute("name") == "SpacePortID")
                         {
-                            if (reader.GetAttribute("name") == "SpacePortID")
+                            Debug.Log(element.InnerText);
+                            if (!int.TryParse(element.InnerText, out spacePortID))
                             {
-                                spacePortID = reader.ReadElementContentAsInt();
-                                organic = true;
+                                Debug.Log("Failed parse " + element.InnerText);
                             }
-                            else if (reader.GetAttribute("name") == "Name")
-                            {
-                                displayName = reader.ReadContentAsString();
-                            }
+                            organic = true;
+                        }
+                        else if (element.GetAttribute("name") == "Name")
+                        {
+                            displayName = element.InnerText;
                         }
                     }
-                    else
-                    {
-                        spacePortID = UpdaterConfiguration.GetOverride(plugin.Name);
-                    }
-                    DateTime? clientDate = UpdaterConfiguration.GetClientVersion(spacePortID);
-                    mods.Add(new KerbalMod(displayName, plugin.Name, spacePortID, clientDate, organic));
                 }
+                else
+                {
+                    spacePortID = UpdaterConfiguration.GetOverride(plugin.Name);
+                }
+                DateTime? clientDate = UpdaterConfiguration.GetClientVersion(spacePortID);
+                mods.Add(new KerbalMod(displayName, plugin.Name, spacePortID, clientDate, organic));
             }
+            
             return mods;
         }
     }

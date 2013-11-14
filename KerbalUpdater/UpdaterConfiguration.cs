@@ -29,6 +29,11 @@ namespace KerbalUpdater
         /// </summary>
         private static Dictionary<string, bool> Toggles;
         /// <summary>
+        /// Dog fooding!
+        /// </summary>
+        private static int UpdaterSpacePortID;
+        private static string UpdaterName;
+        /// <summary>
         /// Is this the first time the mod has been run?
         /// </summary>
         public static bool FirstRun { get; private set; }
@@ -93,8 +98,9 @@ namespace KerbalUpdater
                 Overrides = Deserialize<string, int>(Configuration.GetValue<string>("Overrides", ""));
                 ClientVersions = Deserialize<int, string>(Configuration.GetValue<string>("ClientVersions", ""));
                 Toggles = Deserialize<string, bool>(Configuration.GetValue<string>("Toggles", ""));
+                UpdaterSpacePortID = Configuration.GetValue<int>("SpacePortID", 40298); // lol hardcoded default...
+                UpdaterName = Configuration.GetValue<string>("Name", "Kerbal Updater");
                 FirstRun = Configuration.GetValue<bool>("FirstRun", true);
-                Debug.Log("Initialized");
             }
         }
         /// <summary>
@@ -104,7 +110,8 @@ namespace KerbalUpdater
         {
             if (Configuration != null)
             {
-                Debug.Log("Attempting to save settings...");
+                Configuration.SetValue("Name", UpdaterName);
+                Configuration.SetValue("SpacePortID", UpdaterSpacePortID);
                 Configuration.SetValue("Overrides", Serialize<string, int>(Overrides));
                 Configuration.SetValue("ClientVersions", Serialize<int, string>(ClientVersions));
                 Configuration.SetValue("Toggles", Serialize<string, bool>(Toggles));
