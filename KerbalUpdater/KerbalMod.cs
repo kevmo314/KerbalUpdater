@@ -64,6 +64,7 @@ namespace KerbalUpdater
         /// <param name="clientVersion">The known client version</param>
         public KerbalMod(string displayName, string pluginName, int spacePortID = -1, DateTime? clientVersion = null, bool organic = false)
         {
+            Debug.Log("Instantiating");
             this.DisplayName = displayName;
             this.PluginName = pluginName;
             this.SpacePortID = spacePortID;

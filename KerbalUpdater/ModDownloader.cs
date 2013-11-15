@@ -14,14 +14,14 @@ namespace KerbalUpdater
         {
             READY, DOWNLOADING, STAGING, COMPLETE, IGNORED, ERROR
         }
-        private static Dictionary<KerbalMod, ModDownloader> Downloaders = new Dictionary<KerbalMod, ModDownloader>();
+        private static Dictionary<string, ModDownloader> Downloaders = new Dictionary<string, ModDownloader>();
         public static ModDownloader GetDownloader(KerbalMod mod)
         {
-            if (!Downloaders.ContainsKey(mod))
+            if (!Downloaders.ContainsKey(mod.PluginName))
             {
-                Downloaders[mod] = new ModDownloader(mod);
+                Downloaders[mod.PluginName] = new ModDownloader(mod);
             }
-            return Downloaders[mod];
+            return Downloaders[mod.PluginName];
         }
         private KerbalMod Mod;
         private WebClient Client;
@@ -43,6 +43,15 @@ namespace KerbalUpdater
                 Client.DownloadProgressChanged += (sender, e) =>
                 {
                     Progress = e.ProgressPercentage;
+                };
+                Client.DownloadFileCompleted += (sender, e) =>
+                {
+                    Exception ex = e.Error;
+                    if (ex != null)
+                    {
+                        this.CurrentState = State.ERROR;
+                        this.ErrorMessage = ex.Message; 
+                    }
                 };
                 Client.DownloadFileAsync(Mod.DownloadURL, ZipFileName);
                 // for some reason, the DownloadFileComplete handler doesn't work
@@ -68,6 +77,18 @@ namespace KerbalUpdater
                         {   // This plugin is expecting us to extract to the KSP root folder
                             directory = childDirectory;
                             break;
+                        }
+                    }
+                    if (Mod.PluginName == "KerbalUpdater")
+                    {   // handle a cute edge case
+                        Debug.Log("Updating KerbalUpdater");
+                        FileInfo migration = new FileInfo(directory.FullName + "/KerbalUpdater/Plugins/KerbalUpdaterMigration.exe");
+                        Debug.Log(directory.FullName + "/KerbalUpdater/Plugins/KerbalUpdaterMigration.exe");
+                        if (migration.Exists)
+                        {   // move the migration before execution occurs to avoid file locking
+                            Debug.Log("Moving Migration");
+                            migration.MoveTo(KerbalUpdater.Constants.PLUGIN_TARGET + "/KerbalUpdater/Plugins/KerbalUpdaterMigration.exe");
+                            Debug.Log("Finished");
                         }
                     }
                     bool removeExisting = true;

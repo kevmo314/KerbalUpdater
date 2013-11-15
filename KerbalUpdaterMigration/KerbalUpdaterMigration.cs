@@ -41,8 +41,8 @@ namespace KerbalUpdater
                 {
                     System.Diagnostics.Process.Start(KSP_EXE);
                 }
-                // oh well? we don't have access to debug :(
-                throw ex;
+                Console.WriteLine(ex.Message);
+                return;
             }
             // success!
             if (RestartKSP)
@@ -107,9 +107,16 @@ namespace KerbalUpdater
             }
             foreach (FileInfo file in source.GetFiles())
             {
-                //this.Worker.ReportProgress(Done / Total);
                 Console.Write(".");
-                file.CopyTo(Path.Combine(target.FullName, file.Name), true);
+                try
+                {
+                    file.CopyTo(Path.Combine(target.FullName, file.Name), true);
+                }
+                catch (Exception ex)
+                {
+                    // hmm, this failed... file in use?
+                    Console.WriteLine("Failed to copy " + file.Name + ": " + ex.Message);
+                }
             }
         }
     }
