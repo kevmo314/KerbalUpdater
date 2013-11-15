@@ -68,7 +68,7 @@ namespace KerbalUpdater
                 {
                     // patch for bug, see: http://stackoverflow.com/questions/4600923/monotouch-icsharpcode-sharpziplib-giving-an-error
                     ICSharpCode.SharpZipLib.Zip.ZipConstants.DefaultCodePage = System.Text.Encoding.UTF8.CodePage;
-                    // extract it first, then deal with individual files
+                    // extract it first, then deal with individual files 
                     (new ICSharpCode.SharpZipLib.Zip.FastZip()).ExtractZip(ZipFileName, tempDirectory, null);
                     DirectoryInfo directory = new DirectoryInfo(tempDirectory);
                     foreach (DirectoryInfo childDirectory in directory.GetDirectories())
@@ -81,14 +81,11 @@ namespace KerbalUpdater
                     }
                     if (Mod.PluginName == "KerbalUpdater")
                     {   // handle a cute edge case
-                        Debug.Log("Updating KerbalUpdater");
                         FileInfo migration = new FileInfo(directory.FullName + "/KerbalUpdater/Plugins/KerbalUpdaterMigration.exe");
-                        Debug.Log(directory.FullName + "/KerbalUpdater/Plugins/KerbalUpdaterMigration.exe");
                         if (migration.Exists)
                         {   // move the migration before execution occurs to avoid file locking
-                            Debug.Log("Moving Migration");
+                            File.Delete(KerbalUpdater.Constants.PLUGIN_TARGET + "/KerbalUpdater/Plugins/KerbalUpdaterMigration.exe");
                             migration.MoveTo(KerbalUpdater.Constants.PLUGIN_TARGET + "/KerbalUpdater/Plugins/KerbalUpdaterMigration.exe");
-                            Debug.Log("Finished");
                         }
                     }
                     bool removeExisting = true;
