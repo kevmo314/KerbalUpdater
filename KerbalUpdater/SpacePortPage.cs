@@ -21,28 +21,28 @@ namespace KerbalUpdater
                 WaitForLoad(Page);
                 postData.AddField("addonid", SpacePortID);
                 postData.AddField("action", "downloadfileaddon");
-                WWW request = WaitForLoad(new WWW(KerbalUpdater.Constants.DOWNLOAD_URL, postData));
+                WWW request = WaitForLoad(new WWW(KerbalUpdater.Constants.DownloadUrl, postData));
                 Debug.Log(request.text);
                 return new Uri(request.text);
             }
         }
-        private DateTime? LastUpdated = null;
+        private DateTime? _lastUpdated = null;
         /// <summary>
         /// Create a SpacePort page reference from a SpacePort ID
         /// </summary>
-        /// <param name="SpacePortID"></param>
-        public SpacePortPage(int SpacePortID)
+        /// <param name="spacePortID"></param>
+        public SpacePortPage(int spacePortID)
         {
-            this.SpacePortID = SpacePortID;
-            Page = new WWW(String.Format(KerbalUpdater.Constants.SPACEPORT_URL, SpacePortID));
+            this.SpacePortID = spacePortID;
+            Page = new WWW(String.Format(KerbalUpdater.Constants.SpaceportUrl, spacePortID));
         }
         /// <summary>
         /// Create a SpacePort page reference from a URL
         /// </summary>
-        /// <param name="URL">The URL</param>
-        public SpacePortPage(string URL)
+        /// <param name="url">The URL</param>
+        public SpacePortPage(string url)
         {
-            Page = WaitForLoad(new WWW(URL));
+            Page = WaitForLoad(new WWW(url));
             Match match = (new Regex("Product ID:(?<ID>.*?)</li>")).Match(Page.text);
             if (match.Success && match.Groups.Count > 0)
             {
@@ -81,7 +81,7 @@ namespace KerbalUpdater
         /// <returns>The last updated date</returns>
         public DateTime GetLastUpdatedDate()
         {
-            if (LastUpdated == null)
+            if (_lastUpdated == null)
             {
                 while (!Page.isDone)
                 {
@@ -90,10 +90,10 @@ namespace KerbalUpdater
                 Match match = (new Regex("Created:(?<Date>.*?)</li>")).Match(Page.text);
                 if (match.Success && match.Groups.Count > 0)
                 {
-                    LastUpdated = DateTime.Parse(match.Groups["Date"].Value.Trim());
+                    _lastUpdated = DateTime.Parse(match.Groups["Date"].Value.Trim());
                 }
             }
-            return (DateTime)LastUpdated;
+            return (DateTime)_lastUpdated;
         }
     }
 }

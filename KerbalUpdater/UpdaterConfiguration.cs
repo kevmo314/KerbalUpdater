@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 using UnityEngine;
 
 namespace KerbalUpdater
@@ -40,15 +42,15 @@ namespace KerbalUpdater
         /// <summary>
         /// Serialize a dictionary.
         /// </summary>
-        /// <typeparam name="K">Key type</typeparam>
-        /// <typeparam name="V">Value type</typeparam>
+        /// <typeparam name="TK">Key type</typeparam>
+        /// <typeparam name="TV">Value type</typeparam>
         /// <param name="dict">The dictionary</param>
         /// <returns>The serialization</returns>
-        private static string Serialize<K, V>(Dictionary<K, V> dict)
+        private static string Serialize<TK, TV>(Dictionary<TK, TV> dict)
         {
             // apparently there's no String.Join in mono :(
             StringBuilder serialization = new StringBuilder();
-            foreach (K key in dict.Keys)
+            foreach (TK key in dict.Keys)
             {
                 serialization.Append(String.Format("{0},{1}|", key.ToString(), dict[key].ToString()));
             }
@@ -65,13 +67,13 @@ namespace KerbalUpdater
         /// <summary>
         /// Deserialize a dictionary.
         /// </summary>
-        /// <typeparam name="K">Key type</typeparam>
-        /// <typeparam name="V">Value type</typeparam>
+        /// <typeparam name="TK">Key type</typeparam>
+        /// <typeparam name="TV">Value type</typeparam>
         /// <param name="serialization">The serialization</param>
         /// <returns>The dictionary</returns>
-        private static Dictionary<K, V> Deserialize<K, V>(string serialization)
+        private static Dictionary<TK, TV> Deserialize<TK, TV>(string serialization)
         {
-            Dictionary<K, V> deserialization = new Dictionary<K, V>();
+            Dictionary<TK, TV> deserialization = new Dictionary<TK, TV>();
             string[] elements = serialization.Split('|');
             foreach (string element in elements)
             {
@@ -80,44 +82,103 @@ namespace KerbalUpdater
                 {   // something is wrong...
                     continue;
                 }
-                K key = (K)Convert.ChangeType(bifurcation[0], typeof(K));
-                V value = (V)Convert.ChangeType(bifurcation[1], typeof(V));
+                TK key = (TK)Convert.ChangeType(bifurcation[0], typeof(TK));
+                TV value = (TV)Convert.ChangeType(bifurcation[1], typeof(TV));
                 deserialization.Add(key, value);
             }
             return deserialization;
+        }
+        /// <summary>
+        /// Get the plugin's configuration file
+        /// </summary>
+        /// <param name="directory">The directory the plugin is located in</param>
+        /// <returns>A reader for the config file</returns>
+        public static XmlElement GetPluginConfiguration(DirectoryInfo directory)
+        {
+            foreach (FileInfo file in directory.GetFiles())
+            {
+                if (file.Name == "config.xml")
+                {
+                    XmlDocument doc = new XmlDocument();
+                    doc.LoadXml(File.ReadAllText(file.FullName));
+                    return doc.DocumentElement;
+                }
+            }
+            // No config.xml found yet :(
+            foreach (DirectoryInfo childDirectory in directory.GetDirectories())
+            {
+                XmlElement pluginConfiguration = GetPluginConfiguration(childDirectory);
+                if (pluginConfiguration != null)
+                {
+                    return pluginConfiguration;
+                }
+            }
+            return null;
         }
         /// <summary>
         /// Load the configuration file
         /// </summary>
         public static void Load()
         {
-            if (Configuration == null)
+            UpdaterSpacePortID = 40298;
+            UpdaterName = "Kerbal Updater";
+            Overrides = new Dictionary<string, int>();
+            ClientVersions = new Dictionary<int, string>();
+            Toggles = new Dictionary<string, bool>();
+
+            XmlElement config =
+                GetPluginConfiguration(new DirectoryInfo(KerbalUpdater.Constants.PluginTarget + "/KerbalUpdater/"));
+            if (config == null)
             {
-                Configuration = KSP.IO.PluginConfiguration.CreateForType<KerbalUpdater>();
-                Configuration.load();
-                Overrides = Deserialize<string, int>(Configuration.GetValue<string>("Overrides", ""));
-                ClientVersions = Deserialize<int, string>(Configuration.GetValue<string>("ClientVersions", ""));
-                Toggles = Deserialize<string, bool>(Configuration.GetValue<string>("Toggles", ""));
-                UpdaterSpacePortID = Configuration.GetValue<int>("SpacePortID", 40298); // lol hardcoded default...
-                UpdaterName = Configuration.GetValue<string>("Name", "Kerbal Updater");
-                FirstRun = Configuration.GetValue<bool>("FirstRun", true);
+                Save(); // create a new file
+                return;
             }
+            foreach (XmlElement childNode in config.ChildNodes)
+            {
+                if (childNode.GetAttribute("name") == "Overrides")
+                {
+                    Overrides = Deserialize<string, int>(childNode.InnerText);
+                }
+                else if (childNode.GetAttribute("name") == "ClientVersions")
+                {
+                    ClientVersions = Deserialize<int, string>(childNode.InnerText);
+                }
+                else if (childNode.GetAttribute("name") == "Toggles")
+                {
+                    Toggles = Deserialize<string, bool>(childNode.InnerText);
+                }
+                else if (childNode.GetAttribute("name") == "SpacePortID")
+                {
+                    UpdaterSpacePortID = int.Parse(childNode.InnerText);
+                }
+                else if (childNode.GetAttribute("name") == "Name")
+                {
+                    UpdaterName = childNode.InnerText;
+                }
+            }
+        }
+
+        private static XmlElement GenerateElement(XmlDocument doc, string name, string val)
+        {
+            XmlElement element = doc.CreateElement("string");
+            element.SetAttribute("name", name);
+            element.InnerText = val;
+            return element;
         }
         /// <summary>
         /// Save the configuration file
         /// </summary>
         public static void Save()
         {
-            if (Configuration != null)
-            {
-                Configuration.SetValue("Name", UpdaterName);
-                Configuration.SetValue("SpacePortID", UpdaterSpacePortID);
-                Configuration.SetValue("Overrides", Serialize<string, int>(Overrides));
-                Configuration.SetValue("ClientVersions", Serialize<int, string>(ClientVersions));
-                Configuration.SetValue("Toggles", Serialize<string, bool>(Toggles));
-                Configuration.SetValue("FirstRun", false);
-                Configuration.save();
-            }
+            XmlDocument document = new XmlDocument();
+            XmlElement config = document.CreateElement("config");
+            document.AppendChild(config);
+            config.AppendChild(GenerateElement(document, "Name", UpdaterName));
+            config.AppendChild(GenerateElement(document, "SpacePortID", UpdaterSpacePortID.ToString()));
+            config.AppendChild(GenerateElement(document, "Overrides", Serialize<string, int>(Overrides)));
+            config.AppendChild(GenerateElement(document, "ClientVersions", Serialize<int, string>(ClientVersions)));
+            config.AppendChild(GenerateElement(document, "Toggles", Serialize<string, bool>(Toggles)));
+            document.Save(KerbalUpdater.Constants.PluginTarget + "/KerbalUpdater/Plugins/PluginData/KerbalUpdater/config.xml");
         }
         public static bool GetToggle(KerbalMod mod)
         {
@@ -165,6 +226,7 @@ namespace KerbalUpdater
         /// <param name="version">The client's version date</param>
         public static void SetClientVersion(int spacePortID, DateTime? version)
         {
+            Debug.Log(spacePortID + " " + version);
             if (version == null)
             {
                 ClientVersions.Remove(spacePortID);
